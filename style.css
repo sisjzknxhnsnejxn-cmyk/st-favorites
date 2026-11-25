@@ -1,1 +1,7 @@
-/* ST Favorites - Main Styles Entry */`n@import './src/styles/base.css';`n@import './src/styles/components/floating.css';`n@import './src/styles/components/panel.css';`n@import './src/styles/components/card.css';`n@import './src/styles/components/dialogs.css';`n@import './src/styles/components/toast.css';
+/* ST Favorites - Main Styles Entry */
+@import './src/styles/base.css';
+@import './src/styles/components/floating.css';
+@import './src/styles/components/panel.css';
+@import './src/styles/components/card.css';
+@import './src/styles/components/dialogs.css';
+@import './src/styles/components/toast.css';
