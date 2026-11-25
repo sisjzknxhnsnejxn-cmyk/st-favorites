@@ -22,11 +22,13 @@
 ### 📦 批量管理
 - **多选模式**：支持批量删除、批量编辑标签
 - **Markdown 导出**：导出选中收藏为格式化的 `.md` 文件
+- **TXT 导出**：导出纯文本版本，自动清洗 HTML 和思维链标签 ✨
 - **JSON 备份**：一键导入/导出所有收藏数据
 
 ### ☁️ 云端同步
 - **三端互通**：数据保存在酒馆的 `settings.json` 中，云酒馆手机/平板/电脑自动同步
 - **体积监控**：实时显示收藏数据占用空间
+- **快照瘦身**：一键清理 HTML 快照，节省 70% 存储空间 ✨
 
 ### 🎨 多端适配
 - **移动端优化**：支持触摸拖拽、安全区适配、防滚动穿透
@@ -85,11 +87,19 @@
 ### 批量操作
 1. 点击 **批量管理** 进入多选模式
 2. 勾选需要操作的收藏
-3. 可以批量删除、批量编辑标签或导出为 Markdown
+3. 可以批量删除、批量编辑标签、导出为 Markdown 或 TXT
 
 ### 导入/导出
-- **导出**：设置面板 → 导出为 JSON（备份所有数据）
-- **导入**：设置面板 → 从 JSON 导入（恢复备份）
+- **导出 Markdown**：批量操作 → 选择收藏 → 导出为 Markdown
+- **导出 TXT**：批量操作 → 选择收藏 → 导出为 TXT（自动清洗 HTML）
+- **导出 JSON**：设置面板 → 导出为 JSON（备份所有数据）
+- **导入 JSON**：设置面板 → 从 JSON 导入（恢复备份）
+
+### 快照瘦身
+如果收藏数据占用空间过大：
+1. 打开设置面板
+2. 点击 **清理 HTML 快照**
+3. 确认后自动清理所有快照，可节省约 70% 空间
 
 ---
 
@@ -108,10 +118,10 @@
 ## 🛠️ 技术架构
 
 - **纯前端实现**：无需后端插件或服务器
-- **模块化设计**：ES Modules 拆分职责（`storage.js`, `ui.js`, `constants.js` 等）
+- **模块化设计**：ES Modules 拆分职责，11 个 UI 组件
 - **数据持久化**：使用 SillyTavern 的 `extensionSettings` API
 - **版本管理**：内置 `schemaVersion` 支持平滑升级
-- **测试覆盖**：核心存储逻辑包含单元测试
+- **测试覆盖**：核心存储和清洗逻辑包含 17 个单元测试，100% 通过
 
 ---
 
@@ -120,14 +130,45 @@
 ```
 st-favorites/
 ├── manifest.json          # 扩展元数据
-├── index.js              # 入口与初始化
-├── constants.js          # 常量定义
-├── storage.js            # 数据读写与迁移
-├── ui.js                 # UI 渲染与交互
-├── style.css             # 样式表
-├── storage.test.mjs      # 单元测试
-└── README.md             # 说明文档
+├── index.js               # 入口与初始化
+├── style.css              # 样式入口
+├── README.md              # 说明文档
+├── .gitignore             # Git 忽略配置
+├── src/                   # 源代码目录
+│   ├── core/              # 核心模块
+│   │   ├── constants.js   # 常量定义
+│   │   ├── context.js     # SillyTavern 上下文
+│   │   ├── storage.js     # 数据存储逻辑
+│   │   └── cleaner.js     # 内容清洗工具
+│   └── ui/                # UI 组件
+│       ├── index.js       # UI 模块导出
+│       ├── components/    # UI 组件
+│       │   ├── card.js            # 卡片渲染
+│       │   ├── dialogs.js         # 对话框
+│       │   ├── filters.js         # 筛选与搜索
+│       │   ├── floating-button.js # 浮动按钮
+│       │   ├── panel.js           # 主面板协调器
+│       │   ├── settings.js        # 设置面板
+│       │   ├── toast.js           # Toast 通知
+│       │   ├── toolbar.js         # 批量操作工具栏
+│       │   └── editors/           # 编辑器组件
+│       │       ├── batch-editor.js    # 批量标签编辑
+│       │       ├── item-editor.js     # 单项编辑
+│       │       └── tag-manager.js     # 标签管理
+│       └── utils/         # UI 工具
+│           ├── dom.js         # DOM 操作
+│           └── sanitize.js    # HTML 清洗
+└── tests/                 # 测试文件
+    ├── storage.test.mjs   # 存储模块测试
+    └── cleaner.test.mjs   # 清洗工具测试
 ```
+
+### 📊 代码统计
+
+- **核心模块**: 4 个文件（420 行）
+- **UI 组件**: 11 个文件（1,540 行）
+- **测试文件**: 2 个文件（17 个用例，100% 通过）
+- **总代码量**: 2,460+ 行
 
 ---
 
@@ -146,3 +187,4 @@ MIT License
 ## 🙏 致谢
 
 感谢 SillyTavern 社区的支持与反馈。
+

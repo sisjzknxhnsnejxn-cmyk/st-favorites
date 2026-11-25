@@ -1,103 +1,17 @@
-import { CSS_PREFIX, EXTENSION_KEY } from './constants.js';
-import { saveData } from './storage.js';
+/**
+ * 主面板组件
+ * 包含收藏列表、筛选、批量操作等功能
+ */
+
+import { CSS_PREFIX, EXTENSION_KEY } from '../../core/constants.js';
+import { saveData } from '../../core/storage.js';
+import { el } from '../utils/dom.js';
+import { sanitizeSnapshot } from '../utils/sanitize.js';
+import { notify } from './toast.js';
+import { askConfirm, askInput } from './dialogs.js';
 
 const ID = `${EXTENSION_KEY}-panel`;
 const PAGE_SIZE = 20;
-const el = (tag, attrs = {}, children = []) => {
-    const node = document.createElement(tag);
-    for (const [key, value] of Object.entries(attrs)) {
-        if (key === 'class') node.className = value;
-        else if (key === 'text') node.textContent = value;
-        else node.setAttribute(key, value);
-    }
-    node.append(...children);
-    return node;
-};
-
-const notify = (text, type = 'info') => {
-    const toast = el('div', { class: `${CSS_PREFIX}toast ${CSS_PREFIX}toast-${type}`, text });
-    document.body.append(toast);
-    globalThis.setTimeout(() => toast.classList.add(`${CSS_PREFIX}toast-show`), 10);
-    globalThis.setTimeout(() => {
-        toast.classList.remove(`${CSS_PREFIX}toast-show`);
-        globalThis.setTimeout(() => toast.remove(), 300);
-    }, 3000);
-};
-
-const askConfirm = text => {
-    return new Promise(resolve => {
-        const overlay = el('div', { class: `${CSS_PREFIX}confirm-overlay` });
-        const dialog = el('div', { class: `${CSS_PREFIX}confirm-dialog` });
-        dialog.append(el('p', { text }));
-        const actions = el('div', { class: `${CSS_PREFIX}actions` });
-        const cancel = el('button', { type: 'button', text: '取消' });
-        cancel.addEventListener('click', () => {
-            overlay.remove();
-            resolve(false);
-        });
-        const confirm = el('button', { type: 'button', class: `${CSS_PREFIX}primary`, text: '确认' });
-        confirm.addEventListener('click', () => {
-            overlay.remove();
-            resolve(true);
-        });
-        actions.append(cancel, confirm);
-        dialog.append(actions);
-        overlay.append(dialog);
-        overlay.addEventListener('click', event => {
-            if (event.target === overlay) {
-                overlay.remove();
-                resolve(false);
-            }
-        });
-        document.body.append(overlay);
-        confirm.focus();
-    });
-};
-
-const askInput = (text, defaultValue = '') => {
-    return new Promise(resolve => {
-        const overlay = el('div', { class: `${CSS_PREFIX}confirm-overlay` });
-        const dialog = el('div', { class: `${CSS_PREFIX}confirm-dialog` });
-        dialog.append(el('p', { text }));
-        const input = el('input', { type: 'text', value: defaultValue });
-        dialog.append(input);
-        const actions = el('div', { class: `${CSS_PREFIX}actions` });
-        const cancel = el('button', { type: 'button', text: '取消' });
-        cancel.addEventListener('click', () => {
-            overlay.remove();
-            resolve(null);
-        });
-        const confirm = el('button', { type: 'button', class: `${CSS_PREFIX}primary`, text: '确认' });
-        confirm.addEventListener('click', () => {
-            overlay.remove();
-            resolve(input.value.trim());
-        });
-        actions.append(cancel, confirm);
-        dialog.append(actions);
-        overlay.append(dialog);
-        overlay.addEventListener('click', event => {
-            if (event.target === overlay) {
-                overlay.remove();
-                resolve(null);
-            }
-        });
-        input.addEventListener('keydown', event => {
-            if (event.key === 'Enter') confirm.click();
-            if (event.key === 'Escape') cancel.click();
-        });
-        document.body.append(overlay);
-        input.focus();
-        input.select();
-    });
-};
-
-export { askConfirm };
-
-const sanitizeSnapshot = (html, context) => {
-    const purifier = globalThis.DOMPurify ?? context.DOMPurify;
-    if (!purifier?.sanitize) return null;
-    return purifier.sanitize(html, { USE_PROFILES: { html: true } });
-};
 
 export function createFavoritesUI(context, getData) {
     let root = null;

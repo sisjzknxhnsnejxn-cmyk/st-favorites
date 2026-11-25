@@ -1,0 +1,115 @@
+/* ST Favorites - Base Styles */
+
+/* Floating button */
+.st-fav-floating {
+    position: fixed;
+    right: 16px;
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    z-index: 30000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    border: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 20%));
+    border-radius: 50%;
+    background: var(--SmartThemeBlurTintColor, rgb(30 30 30 / 90%));
+    color: var(--SmartThemeQuoteColor, #f5c542);
+    font-size: 24px;
+    line-height: 1;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 40%), 0 2px 8px rgb(0 0 0 / 20%);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    backdrop-filter: blur(12px);
+    transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.st-fav-floating:hover {
+    transform: scale(1.05);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 50%), 0 4px 12px rgb(0 0 0 / 25%);
+}
+
+.st-fav-floating:active { 
+    cursor: grabbing;
+    transform: scale(0.95);
+}
+
+.st-fav-floating[hidden] { 
+    display: none !important; 
+}
+
+/* Menu entries */
+.st-fav-menu-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 120ms ease;
+}
+
+.st-fav-menu-entry:hover {
+    background: rgb(255 255 255 / 8%);
+}
+
+.st-fav-menu-entry[hidden] { 
+    display: none !important; 
+}
+
+/* Settings */
+.st-fav-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0 0 12px;
+    padding: 12px;
+    border: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 15%));
+    border-radius: 8px;
+}
+
+.st-fav-settings > h3 { 
+    margin: 0; 
+    font-size: 1em; 
+}
+
+.st-fav-setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 44px;
+    cursor: pointer;
+}
+
+.st-fav-setting-row select { 
+    max-width: 60%; 
+}
+
+/* Animations */
+@keyframes st-fav-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes st-fav-scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.92) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .st-fav-floating { 
+        transition: transform 120ms ease; 
+    }
+    .st-fav-floating:active { 
+        transform: scale(0.96); 
+    }
+}

@@ -21,3 +21,15 @@ coverage/
 # Build outputs
 dist/
 build/
+
+# Temporary files
+*.tmp
+*.bak
+*.old
+
+# Developer documentation (not for Git)
+开发参考文档/
+
+# Local development only
+.env.local
+

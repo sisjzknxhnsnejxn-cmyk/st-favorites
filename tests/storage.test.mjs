@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { normalizeData, isFavoriteItem, createSourceKey, addFavorite, removeFavorite, saveData } from './storage.js';
-import { SCHEMA_VERSION, createEmptyData } from './constants.js';
+import { normalizeData, isFavoriteItem, createSourceKey, addFavorite, removeFavorite, saveData } from '../src/core/storage.js';
+import { SCHEMA_VERSION, createEmptyData } from '../src/core/constants.js';
 
 // Mock SillyTavern context
 const mockContext = () => ({

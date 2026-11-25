@@ -1,18 +1,11 @@
-import { EXTENSION_KEY } from './constants.js';
-import { createFavoritesUI } from './ui.js';
-import { askConfirm } from './ui.js';
-
-import { addFavorite, findFavoriteBySource, loadData, removeFavorite } from './storage.js';
+import { EXTENSION_KEY } from './src/core/constants.js';
+import { getContext } from './src/core/context.js';
+import { createFavoritesUI } from './src/ui/index.js';
+import { askConfirm } from './src/ui/index.js';
+import { addFavorite, findFavoriteBySource, loadData, removeFavorite } from './src/core/storage.js';
 
 const BUTTON_CLASS = 'st-fav-star-button';
 const CHAT_SELECTOR = '#chat';
-
-function getContext() {
-    if (!globalThis.SillyTavern?.getContext) {
-        throw new Error('SillyTavern context API is unavailable.');
-    }
-    return globalThis.SillyTavern.getContext();
-}
 
 function getCurrentSource(context, messageElement) {
     const rawMessageId = messageElement.getAttribute('mesid');
