@@ -1,4 +1,6 @@
 {
+  "name": "st-favorites",
+  "id": "st-favorites",
   "display_name": "ST Favorites",
   "loading_order": 10,
   "requires": [],
@@ -9,6 +11,7 @@
   "author": "ST Favorites contributors",
   "version": "0.1.0",
   "homePage": "https://github.com/sisjzknxhnsnejxn-cmyk/st-favorites",
-  "auto_update": true,
+  "auto_update": false,
+  "update_url": "https://github.com/sisjzknxhnsnejxn-cmyk/st-favorites",
   "minimum_client_version": "1.12.0"
 }
