@@ -29,6 +29,7 @@ export function createFavoritesUI(context, getData) {
     let page = PAGE_SIZE;
     let observer;
     let updateStorageInfo = null;
+    let mountTimer = null;
 
     // 筛选逻辑
     const filtered = () => getData().items.filter(item => {
@@ -44,13 +45,13 @@ export function createFavoritesUI(context, getData) {
     const render = () => {
         if (!root) return;
         observer?.disconnect();
-        
+
         const data = getData();
         const content = root.querySelector(`.${CSS_PREFIX}content`);
         content.replaceChildren();
-        
+
         const items = filtered();
-        
+
         // 构建分组信息
         const groups = new Map();
         for (const item of data.items) {
@@ -64,10 +65,10 @@ export function createFavoritesUI(context, getData) {
                 owner.chats.set(chatKey, item.source);
             }
         }
-        
+
         // 收集所有标签
         const allTags = [...new Set(data.items.flatMap(item => item.tags ?? []))].sort();
-        
+
         // 渲染筛选器
         const filters = createFilters({
             query,
@@ -80,7 +81,7 @@ export function createFavoritesUI(context, getData) {
             onGroupFilterChange: (value) => { groupFilter = value; render(); },
         });
         content.append(filters);
-        
+
         // 渲染分组导航
         if (groups.size > 0) {
             const nav = createGroupNav({
@@ -91,7 +92,7 @@ export function createFavoritesUI(context, getData) {
             });
             content.append(nav);
         }
-        
+
         // 渲染批量操作工具栏
         if (selected.size > 0 || items.length > 0) {
             const toolbar = createBatchToolbar({
@@ -146,11 +147,11 @@ export function createFavoritesUI(context, getData) {
         // 渲染卡片列表
         const list = el('div', { class: `${CSS_PREFIX}list` });
         const visible = items.slice(0, page);
-        
+
         if (items.length === 0) {
-            list.append(el('p', { 
-                class: `${CSS_PREFIX}empty`, 
-                text: data.items.length === 0 ? '还没有收藏' : '没有找到匹配的收藏' 
+            list.append(el('p', {
+                class: `${CSS_PREFIX}empty`,
+                text: data.items.length === 0 ? '还没有收藏' : '没有找到匹配的收藏',
             }));
         } else {
             for (const item of visible) {
@@ -193,13 +194,13 @@ export function createFavoritesUI(context, getData) {
                 });
                 list.append(card);
             }
-            
+
             // 加载更多按钮
             if (visible.length < items.length) {
-                const loadMore = el('button', { 
-                    type: 'button', 
-                    class: `${CSS_PREFIX}load-more`, 
-                    text: `加载更多 (${items.length - visible.length} 条)` 
+                const loadMore = el('button', {
+                    type: 'button',
+                    class: `${CSS_PREFIX}load-more`,
+                    text: `加载更多 (${items.length - visible.length} 条)`,
                 });
                 loadMore.addEventListener('click', () => {
                     page += PAGE_SIZE;
@@ -208,7 +209,7 @@ export function createFavoritesUI(context, getData) {
                 list.append(loadMore);
             }
         }
-        
+
         content.append(list);
         content.scrollTop = 0;
         updateStorageInfo?.();
@@ -217,38 +218,70 @@ export function createFavoritesUI(context, getData) {
     // 打开面板
     const open = () => {
         if (root) {
-            root.showModal();
+            if (!root.open) {
+                render();
+                root.showModal();
+            }
             return;
         }
-        
+
         root = el('dialog', { id: ID, class: `${CSS_PREFIX}panel` });
         root.setAttribute('data-theme', getData().preferences.theme);
-        
+
         const header = el('header', { class: `${CSS_PREFIX}header` });
         header.append(el('h2', { text: '收藏夹' }));
-        
+
         const close = el('button', { type: 'button', text: '✕', 'aria-label': '关闭' });
         close.addEventListener('click', () => root.close());
         header.append(close);
-        
+
         const content = el('div', { class: `${CSS_PREFIX}content` });
-        
+
         root.append(header, content);
         root.addEventListener('close', () => { page = PAGE_SIZE; selected.clear(); });
         root.addEventListener('click', event => {
             if (event.target === root) root.close();
         });
-        
+
         document.body.append(root);
         render();
         root.showModal();
     };
 
+    const addMenuEntry = (container, key, label) => {
+        if (!container || container.querySelector(`[data-st-fav-entry="${key}"]`)) return;
+        const button = el('div', {
+            class: `list-group-item flex-container flexGap5 interactable ${CSS_PREFIX}menu-entry`,
+            role: 'button',
+            tabindex: '0',
+            title: label,
+        }, [
+            el('i', { class: 'fa-solid fa-star extensionsMenuExtensionButton', 'aria-hidden': 'true' }),
+            el('span', { text: label }),
+        ]);
+        button.dataset.stFavEntry = key;
+        button.addEventListener('click', open);
+        button.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                open();
+            }
+        });
+        container.append(button);
+    };
+
+    const mountMenuEntries = () => {
+        addMenuEntry(document.querySelector('#extensionsMenu'), 'magic', '收藏夹');
+        addMenuEntry(document.querySelector('#extensions_menu_container'), 'extension', '收藏夹');
+    };
+
     // 更新入口点
     const updateEntries = () => {
-        const preferences = getData().preferences;
-        
-        if (preferences.entryPoints.floatingButton) {
+        const entryPoints = getData().preferences.entryPoints;
+        mountMenuEntries();
+        settingsResult?.mountSettings?.();
+
+        if (entryPoints.floatingButton) {
             if (!document.getElementById(`${EXTENSION_KEY}-floating`)) {
                 const floating = createFloatingButton(open);
                 document.body.append(floating);
@@ -256,15 +289,51 @@ export function createFavoritesUI(context, getData) {
         } else {
             removeFloatingButton();
         }
+
+        document.querySelectorAll('[data-st-fav-entry]').forEach(button => {
+            const key = button.dataset.stFavEntry;
+            if (key === 'floating') {
+                button.hidden = !entryPoints.floatingButton;
+            } else if (key === 'extension') {
+                button.hidden = !entryPoints.extensionMenu;
+                button.style.display = entryPoints.extensionMenu ? '' : 'none';
+            } else if (key === 'magic') {
+                button.hidden = !entryPoints.extensionsMenu;
+                button.style.display = entryPoints.extensionsMenu ? '' : 'none';
+            }
+        });
     };
 
     // 初始化设置面板
     const settingsResult = initializeSettings(context, getData, updateEntries, render);
     updateStorageInfo = settingsResult.updateStorageInfo;
-    
+
     updateEntries();
-    
-    return { open, refresh: render, updateEntries };
+
+    let mountAttempts = 0;
+    mountTimer = globalThis.setInterval(() => {
+        mountAttempts += 1;
+        updateEntries();
+        const hasMagic = Boolean(document.querySelector('#extensionsMenu [data-st-fav-entry="magic"]'));
+        const hasSettings = Boolean(document.getElementById(`${EXTENSION_KEY}_settings`));
+        if ((hasMagic && hasSettings) || mountAttempts >= 20) {
+            globalThis.clearInterval(mountTimer);
+            mountTimer = null;
+        }
+    }, 500);
+
+    const destroy = () => {
+        if (mountTimer) {
+            globalThis.clearInterval(mountTimer);
+            mountTimer = null;
+        }
+        observer?.disconnect();
+        removeFloatingButton();
+        document.querySelectorAll('[data-st-fav-entry="magic"], [data-st-fav-entry="extension"]').forEach(el => el.remove());
+        document.getElementById(`${EXTENSION_KEY}_settings`)?.remove();
+        root?.remove();
+        root = null;
+    };
+
+    return { open, refresh: render, updateEntries, destroy };
 }
-
-

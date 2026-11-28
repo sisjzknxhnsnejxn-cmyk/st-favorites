@@ -5,8 +5,8 @@
 import { CSS_PREFIX, EXTENSION_KEY } from '../../core/constants.js';
 import { saveData } from '../../core/storage.js';
 import { el } from '../utils/dom.js';
-import { notify } from '../toast.js';
-import { askConfirm } from '../dialogs.js';
+import { notify } from './toast.js';
+import { askConfirm } from './dialogs.js';
 import { openTagManager } from './editors/tag-manager.js';
 
 /**
@@ -205,8 +205,17 @@ export function initializeSettings(context, getData, updateEntries, onDataChange
     updateStorageInfo();
     settings.append(storageInfo);
     
-    document.querySelector('#extensions_settings')?.append(settings);
-    
-    return { updateStorageInfo };
+    const mountSettings = () => {
+        const container = document.querySelector('#extensions_settings')
+            ?? document.querySelector('#extensions_settings2');
+        if (!container) return false;
+        if (!document.getElementById(settings.id)) {
+            container.append(settings);
+        }
+        return true;
+    };
+    mountSettings();
+
+    return { updateStorageInfo, mountSettings };
 }
 

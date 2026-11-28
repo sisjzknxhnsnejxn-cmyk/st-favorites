@@ -4,8 +4,8 @@
 
 import { CSS_PREFIX } from '../../core/constants.js';
 import { el } from '../utils/dom.js';
-import { askConfirm } from '../dialogs.js';
-import { notify } from '../toast.js';
+import { askConfirm } from './dialogs.js';
+import { notify } from './toast.js';
 import { generateTxtExport, downloadTxt } from '../../core/cleaner.js';
 
 /**
