@@ -18,7 +18,7 @@ export { renderCard } from './components/card.js';
 export { openItemEditor } from './components/editors/item-editor.js';
 export { openBatchTagEditor } from './components/editors/batch-editor.js';
 export { openTagManager } from './components/editors/tag-manager.js';
-export { createFilters, createGroupNav } from './components/filters.js';
+export { createFilters } from './components/filters.js';
 export { createBatchToolbar, generateMarkdownExport, downloadMarkdown, generateTxtExport, downloadTxt } from './components/toolbar.js';
 export { createFloatingButton, removeFloatingButton } from './components/floating-button.js';
 export { initializeSettings } from './components/settings.js';

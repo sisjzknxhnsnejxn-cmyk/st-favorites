@@ -7,7 +7,7 @@
 
 import { bootstrapSTFavorites } from './src/entry.js';
 
-const PLUGIN_VERSION = '0.1.0';
+const PLUGIN_VERSION = '0.2.0';
 const LOADER_STATE_KEY = '__stFavoritesLoaderState';
 
 function ensureStylesheetLoaded(forceReload = false) {
