@@ -6,7 +6,8 @@ import { CSS_PREFIX } from '../../core/constants.js';
 import { el } from '../utils/dom.js';
 import { askConfirm } from './dialogs.js';
 import { notify } from './toast.js';
-import { generateTxtExport, downloadTxt } from '../../core/cleaner.js';
+import { generateTxtExport, downloadTxt, filterCustomTags } from '../../core/cleaner.js';
+
 
 /**
  * 创建批量操作工具栏
@@ -21,42 +22,43 @@ import { generateTxtExport, downloadTxt } from '../../core/cleaner.js';
  * @returns {HTMLElement} 工具栏元素
  */
 export function createBatchToolbar(options) {
-    const { 
-        selected, 
-        allItems, 
-        onSelectAll, 
-        onBatchDelete, 
+    const {
+        selected,
+        allItems,
+        onSelectAll,
+        onBatchDelete,
         onBatchEditTags,
         onBatchExport,
         onBatchExportTxt
     } = options;
-    
+
     const toolbar = el('div', { class: `${CSS_PREFIX}batch-toolbar` });
-    
+
     // 全选复选框
-    const selectAll = el('input', { 
-        type: 'checkbox', 
-        'aria-label': '全选' 
+    const selectAll = el('input', {
+        type: 'checkbox',
+        'aria-label': '全选'
     });
     selectAll.checked = selected.size > 0 && selected.size === allItems.length;
     selectAll.indeterminate = selected.size > 0 && selected.size < allItems.length;
     selectAll.addEventListener('change', () => {
         onSelectAll(selectAll.checked);
     });
-    
-    const selectLabel = el('label', { 
-        class: `${CSS_PREFIX}select-all`, 
-        text: `全选 (${selected.size})` 
+
+    const selectLabel = el('label', {
+        class: `${CSS_PREFIX}select-all`,
+        text: `全选 (${selected.size})`
     });
     selectLabel.prepend(selectAll);
     toolbar.append(selectLabel);
-    
+
     // 批量操作按钮（仅在有选中项时显示）
     if (selected.size > 0) {
         // 批量删除
-        const batchDelete = el('button', { 
-            type: 'button', 
-            text: `删除 ${selected.size} 项` 
+        const batchDelete = el('button', {
+            type: 'button',
+            class: `${CSS_PREFIX}button`,
+            text: `删除 ${selected.size} 项`,
         });
         batchDelete.addEventListener('click', async () => {
             const count = selected.size;
@@ -64,58 +66,65 @@ export function createBatchToolbar(options) {
             onBatchDelete();
             notify(`已删除 ${count} 条`, 'success');
         });
-        
+
         // 批量编辑标签
-        const batchTag = el('button', { 
-            type: 'button', 
-            text: '批量编辑标签' 
+        const batchTag = el('button', {
+            type: 'button',
+            class: `${CSS_PREFIX}button`,
+            text: '批量编辑标签',
         });
         batchTag.addEventListener('click', onBatchEditTags);
-        
+
         // 批量导出 Markdown
-        const batchExport = el('button', { 
-            type: 'button', 
-            text: '导出为 Markdown' 
+        const batchExport = el('button', {
+            type: 'button',
+            class: `${CSS_PREFIX}button`,
+            text: '导出为 Markdown',
         });
         batchExport.addEventListener('click', () => {
+            const count = selected.size;
             onBatchExport();
-            notify(`已导出 ${selected.size} 条`, 'success');
+            notify(`已导出 ${count} 条`, 'success');
         });
-        
+
         // 批量导出 TXT
-        const batchExportTxt = el('button', { 
-            type: 'button', 
-            text: '导出为 TXT' 
+        const batchExportTxt = el('button', {
+            type: 'button',
+            class: `${CSS_PREFIX}button`,
+            text: '导出为 TXT',
         });
         batchExportTxt.addEventListener('click', () => {
+            const count = selected.size;
             onBatchExportTxt();
-            notify(`已导出 ${selected.size} 条为 TXT`, 'success');
+            notify(`已导出 ${count} 条为 TXT`, 'success');
         });
-        
+
         toolbar.append(batchDelete, batchTag, batchExport, batchExportTxt);
     }
-    
+
     return toolbar;
 }
 
 /**
  * 生成 Markdown 导出内容
  * @param {Array} items - 要导出的收藏项
+ * @param {Array<string>} [customTags] - 需要过滤的自定义标签
  * @returns {string} Markdown 格式的文本
  */
-export function generateMarkdownExport(items) {
+export function generateMarkdownExport(items, customTags = []) {
     return items.map(item => {
         const date = new Date(item.createdAt);
         const header = `## ${item.source.speakerName || item.source.ownerName}`;
         const meta = `**来源:** ${item.source.ownerName} / ${item.source.chatName}  \n**时间:** ${date.toLocaleString()}`;
-        const tags = item.tags?.length > 0 
-            ? `  \n**标签:** ${item.tags.map(t => `#${t}`).join(' ')}` 
+        const tags = item.tags?.length > 0
+            ? `  \n**标签:** ${item.tags.map(t => `#${t}`).join(' ')}`
             : '';
         const note = item.note ? `  \n**备注:** ${item.note}` : '';
-        const content = `\n\n${item.message.rawText}`;
+        const content = `\n\n${filterCustomTags(item.message.rawText, customTags).trim()}`;
         return `${header}\n\n${meta}${tags}${note}${content}\n\n---\n`;
     }).join('\n');
 }
+
 
 /**
  * 下载 Markdown 文件

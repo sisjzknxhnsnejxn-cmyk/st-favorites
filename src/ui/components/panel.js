@@ -4,14 +4,15 @@
  */
 
 import { CSS_PREFIX, EXTENSION_KEY } from '../../core/constants.js';
-import { saveData } from '../../core/storage.js';
+import { saveData, getActiveTagFilters } from '../../core/storage.js';
+import { cleanContent } from '../../core/cleaner.js';
 import { el } from '../utils/dom.js';
 import { notify } from './toast.js';
 import { askConfirm } from './dialogs.js';
 import { renderCard } from './card.js';
 import { openItemEditor } from './editors/item-editor.js';
 import { openBatchTagEditor } from './editors/batch-editor.js';
-import { createFilters, createGroupNav } from './filters.js';
+import { createFilters } from './filters.js';
 import { createBatchToolbar, generateMarkdownExport, downloadMarkdown, generateTxtExport, downloadTxt } from './toolbar.js';
 import { createFloatingButton, removeFloatingButton } from './floating-button.js';
 import { initializeSettings } from './settings.js';
@@ -21,40 +22,52 @@ const PAGE_SIZE = 20;
 
 export function createFavoritesUI(context, getData) {
     let root = null;
+    let listHost = null;
+    let filtersApi = null;
+    let toolbarHost = null;
     let query = '';
     let tagFilter = '';
     let groupFilter = '';
-    let expanded = new Set();
-    let selected = new Set();
+    const expanded = new Set();
+    const selected = new Set();
     let page = PAGE_SIZE;
-    let observer;
     let updateStorageInfo = null;
     let mountTimer = null;
 
+    /** 筛选条件变化时需要回到列表顶部 */
+    let resetScroll = false;
+
     // 筛选逻辑
-    const filtered = () => getData().items.filter(item => {
-        if (groupFilter && `${item.source.ownerId}::${item.source.chatId}` !== groupFilter) return false;
-        if (tagFilter && !(item.tags ?? []).includes(tagFilter)) return false;
-        if (!query.trim()) return true;
-        return [item.message.rawText, item.note, item.source.speakerName,
-            item.source.ownerName, item.source.chatName, ...(item.tags ?? [])]
-            .join(' ').toLocaleLowerCase().includes(query.trim().toLocaleLowerCase());
-    });
-
-    // 渲染主函数
-    const render = () => {
-        if (!root) return;
-        observer?.disconnect();
-
+    const filtered = () => {
         const data = getData();
-        const content = root.querySelector(`.${CSS_PREFIX}content`);
-        content.replaceChildren();
+        const tagsToStrip = getActiveTagFilters(data.preferences);
+        const keyword = query.trim().toLocaleLowerCase();
 
-        const items = filtered();
+        return data.items.filter(item => {
+            if (groupFilter && `${item.source.ownerId}::${item.source.chatId}` !== groupFilter) return false;
+            if (tagFilter && !(item.tags ?? []).includes(tagFilter)) return false;
+            if (!keyword) return true;
 
-        // 构建分组信息
+            // 搜索基于过滤后的可见文本，避免命中已被隐藏的 <标签> 内容
+            const visibleText = tagsToStrip.length > 0
+                ? cleanContent(item.message.rawText, data.preferences.preserveThinking, tagsToStrip)
+                : item.message.rawText;
+
+            return [
+                visibleText,
+                item.note,
+                item.source.speakerName,
+                item.source.ownerName,
+                item.source.chatName,
+                ...(item.tags ?? []),
+            ].join(' ').toLocaleLowerCase().includes(keyword);
+        });
+    };
+
+    /** 构建分组信息 */
+    const buildGroups = (items) => {
         const groups = new Map();
-        for (const item of data.items) {
+        for (const item of items) {
             const ownerKey = String(item.source.ownerId ?? item.source.ownerName ?? '');
             const chatKey = `${ownerKey}::${item.source.chatId}`;
             if (!groups.has(ownerKey)) {
@@ -65,46 +78,26 @@ export function createFavoritesUI(context, getData) {
                 owner.chats.set(chatKey, item.source);
             }
         }
+        return groups;
+    };
 
-        // 收集所有标签
-        const allTags = [...new Set(data.items.flatMap(item => item.tags ?? []))].sort();
+    /** 仅重绘列表与批量工具栏，保留筛选区 DOM（避免打断输入） */
+    const renderList = () => {
+        if (!root || !listHost) return;
 
-        // 渲染筛选器
-        const filters = createFilters({
-            query,
-            tagFilter,
-            groupFilter,
-            allTags,
-            groups,
-            onQueryChange: (value) => { query = value; render(); },
-            onTagFilterChange: (value) => { tagFilter = value; render(); },
-            onGroupFilterChange: (value) => { groupFilter = value; render(); },
-        });
-        content.append(filters);
+        const data = getData();
+        const items = filtered();
 
-        // 渲染分组导航
-        if (groups.size > 0) {
-            const nav = createGroupNav({
-                groups,
-                groupFilter,
-                totalCount: items.length,
-                onGroupSelect: (value) => { groupFilter = value; render(); },
-            });
-            content.append(nav);
-        }
-
-        // 渲染批量操作工具栏
-        if (selected.size > 0 || items.length > 0) {
-            const toolbar = createBatchToolbar({
+        // 批量操作工具栏
+        toolbarHost.replaceChildren();
+        if (items.length > 0) {
+            toolbarHost.append(createBatchToolbar({
                 selected,
                 allItems: items,
                 onSelectAll: (checked) => {
-                    if (checked) {
-                        items.forEach(item => selected.add(item.id));
-                    } else {
-                        selected.clear();
-                    }
-                    render();
+                    if (checked) items.forEach(item => selected.add(item.id));
+                    else selected.clear();
+                    renderList();
                 },
                 onBatchDelete: () => {
                     const current = getData();
@@ -131,45 +124,51 @@ export function createFavoritesUI(context, getData) {
                 },
                 onBatchExport: () => {
                     const selectedItems = data.items.filter(item => selected.has(item.id));
-                    const markdown = generateMarkdownExport(selectedItems);
-                    downloadMarkdown(markdown);
+                    downloadMarkdown(generateMarkdownExport(
+                        selectedItems,
+                        getActiveTagFilters(data.preferences),
+                    ));
                 },
                 onBatchExportTxt: () => {
                     const selectedItems = data.items.filter(item => selected.has(item.id));
-                    const preserveThinking = data.preferences.preserveThinking;
-                    const txt = generateTxtExport(selectedItems, preserveThinking);
-                    downloadTxt(txt);
+                    downloadTxt(generateTxtExport(
+                        selectedItems,
+                        data.preferences.preserveThinking,
+                        getActiveTagFilters(data.preferences),
+                    ));
                 },
-            });
-            content.append(toolbar);
+            }));
         }
 
-        // 渲染卡片列表
-        const list = el('div', { class: `${CSS_PREFIX}list` });
+        // 卡片列表
+        listHost.replaceChildren();
         const visible = items.slice(0, page);
 
         if (items.length === 0) {
-            list.append(el('p', {
+            listHost.append(el('p', {
                 class: `${CSS_PREFIX}empty`,
                 text: data.items.length === 0 ? '还没有收藏' : '没有找到匹配的收藏',
             }));
         } else {
+            const tagFilters = getActiveTagFilters(data.preferences);
             for (const item of visible) {
-                const card = renderCard(item, {
+                listHost.append(renderCard(item, {
                     expanded,
                     selected,
                     onToggleExpand: (id) => {
-                        expanded.has(id) ? expanded.delete(id) : expanded.add(id);
-                        render();
+                        if (expanded.has(id)) expanded.delete(id);
+                        else expanded.add(id);
+                        renderList();
                     },
                     onToggleSelect: (id, checked) => {
-                        checked ? selected.add(id) : selected.delete(id);
-                        render();
+                        if (checked) selected.add(id);
+                        else selected.delete(id);
+                        renderList();
                     },
-                    onEdit: (item) => {
-                        openItemEditor(item, (patch) => {
+                    onEdit: (target) => {
+                        openItemEditor(target, (patch) => {
                             const current = getData();
-                            const index = current.items.findIndex(it => it.id === item.id);
+                            const index = current.items.findIndex(it => it.id === target.id);
                             if (index >= 0) {
                                 current.items[index] = { ...current.items[index], ...patch };
                                 saveData(context, current);
@@ -179,20 +178,20 @@ export function createFavoritesUI(context, getData) {
                             }
                         });
                     },
-                    onDelete: async (item) => {
+                    onDelete: async (target) => {
                         if (!await askConfirm('确认删除这条收藏？')) return;
                         const current = getData();
-                        current.items = current.items.filter(it => it.id !== item.id);
+                        current.items = current.items.filter(it => it.id !== target.id);
                         saveData(context, current);
-                        selected.delete(item.id);
+                        selected.delete(target.id);
                         render();
                         updateStorageInfo?.();
                         notify('已删除', 'success');
                     },
                     context,
                     preferences: data.preferences,
-                });
-                list.append(card);
+                    tagFilters,
+                }));
             }
 
             // 加载更多按钮
@@ -204,46 +203,105 @@ export function createFavoritesUI(context, getData) {
                 });
                 loadMore.addEventListener('click', () => {
                     page += PAGE_SIZE;
-                    render();
+                    renderList();
                 });
-                list.append(loadMore);
+                listHost.append(loadMore);
             }
         }
 
-        content.append(list);
-        content.scrollTop = 0;
+        if (resetScroll) {
+            listHost.scrollTop = 0;
+            resetScroll = false;
+        }
+
         updateStorageInfo?.();
     };
 
-    // 打开面板
-    const open = () => {
-        if (root) {
-            if (!root.open) {
-                render();
-                root.showModal();
-            }
-            return;
-        }
+    // 完整渲染（刷新筛选器选项 + 列表）
+    const render = () => {
+        if (!root) return;
+        const data = getData();
+        const allTags = [...new Set(data.items.flatMap(item => item.tags ?? []))].sort();
+        filtersApi?.update({
+            query,
+            tagFilter,
+            groupFilter,
+            allTags,
+            groups: buildGroups(data.items),
+        });
+        renderList();
+    };
 
+    // 构建面板骨架（仅一次）
+    const buildPanel = () => {
         root = el('dialog', { id: ID, class: `${CSS_PREFIX}panel` });
         root.setAttribute('data-theme', getData().preferences.theme);
 
-        const header = el('header', { class: `${CSS_PREFIX}header` });
-        header.append(el('h2', { text: '收藏夹' }));
+        // 头部
+        const header = el('header', { class: `${CSS_PREFIX}panel-header` });
+        header.append(el('h2', { class: `${CSS_PREFIX}panel-title`, text: '收藏夹' }));
 
-        const close = el('button', { type: 'button', text: '✕', 'aria-label': '关闭' });
+        const close = el('button', {
+            type: 'button',
+            class: `${CSS_PREFIX}close`,
+            text: '✕',
+            'aria-label': '关闭',
+        });
         close.addEventListener('click', () => root.close());
         header.append(close);
 
-        const content = el('div', { class: `${CSS_PREFIX}content` });
+        // 固定筛选区（不随列表重绘而重建）
+        filtersApi = createFilters({
+            onQueryChange: (value) => {
+                query = value;
+                page = PAGE_SIZE;
+                resetScroll = true;
+                renderList();
+            },
+            onTagFilterChange: (value) => {
+                tagFilter = value;
+                page = PAGE_SIZE;
+                resetScroll = true;
+                renderList();
+            },
+            onGroupFilterChange: (value) => {
+                groupFilter = value;
+                page = PAGE_SIZE;
+                resetScroll = true;
+                renderList();
+            },
+        });
 
-        root.append(header, content);
-        root.addEventListener('close', () => { page = PAGE_SIZE; selected.clear(); });
+        toolbarHost = el('div', { class: `${CSS_PREFIX}toolbar-host` });
+
+        const filterBar = el('div', { class: `${CSS_PREFIX}panel-filters` }, [
+            filtersApi.element,
+            toolbarHost,
+        ]);
+
+        // 可滚动列表区
+        listHost = el('div', { class: `${CSS_PREFIX}list` });
+        const content = el('div', { class: `${CSS_PREFIX}panel-content` }, [listHost]);
+
+        root.append(header, filterBar, content);
+
+        root.addEventListener('close', () => {
+            page = PAGE_SIZE;
+            selected.clear();
+        });
         root.addEventListener('click', event => {
             if (event.target === root) root.close();
         });
 
         document.body.append(root);
+    };
+
+    // 打开面板
+    const open = () => {
+        if (!root) buildPanel();
+        if (root.open) return;
+        root.setAttribute('data-theme', getData().preferences.theme);
+        resetScroll = true;
         render();
         root.showModal();
     };
@@ -251,7 +309,7 @@ export function createFavoritesUI(context, getData) {
     const addMenuEntry = (container, key, label) => {
         if (!container || container.querySelector(`[data-st-fav-entry="${key}"]`)) return;
         const button = el('div', {
-            class: `list-group-item flex-container flexGap5 interactable ${CSS_PREFIX}menu-entry`,
+            class: 'list-group-item flex-container flexGap5 interactable',
             role: 'button',
             tabindex: '0',
             title: label,
@@ -270,21 +328,15 @@ export function createFavoritesUI(context, getData) {
         container.append(button);
     };
 
-    const mountMenuEntries = () => {
-        addMenuEntry(document.querySelector('#extensionsMenu'), 'magic', '收藏夹');
-        addMenuEntry(document.querySelector('#extensions_menu_container'), 'extension', '收藏夹');
-    };
-
     // 更新入口点
     const updateEntries = () => {
         const entryPoints = getData().preferences.entryPoints;
-        mountMenuEntries();
+        addMenuEntry(document.querySelector('#extensionsMenu'), 'magic', '收藏夹');
         settingsResult?.mountSettings?.();
 
         if (entryPoints.floatingButton) {
             if (!document.getElementById(`${EXTENSION_KEY}-floating`)) {
-                const floating = createFloatingButton(open);
-                document.body.append(floating);
+                document.body.append(createFloatingButton(open));
             }
         } else {
             removeFloatingButton();
@@ -294,9 +346,6 @@ export function createFavoritesUI(context, getData) {
             const key = button.dataset.stFavEntry;
             if (key === 'floating') {
                 button.hidden = !entryPoints.floatingButton;
-            } else if (key === 'extension') {
-                button.hidden = !entryPoints.extensionMenu;
-                button.style.display = entryPoints.extensionMenu ? '' : 'none';
             } else if (key === 'magic') {
                 button.hidden = !entryPoints.extensionsMenu;
                 button.style.display = entryPoints.extensionsMenu ? '' : 'none';
@@ -310,6 +359,7 @@ export function createFavoritesUI(context, getData) {
 
     updateEntries();
 
+    // ST 的菜单容器可能晚于扩展加载，短轮询直到挂载成功
     let mountAttempts = 0;
     mountTimer = globalThis.setInterval(() => {
         mountAttempts += 1;
@@ -327,13 +377,16 @@ export function createFavoritesUI(context, getData) {
             globalThis.clearInterval(mountTimer);
             mountTimer = null;
         }
-        observer?.disconnect();
         removeFloatingButton();
-        document.querySelectorAll('[data-st-fav-entry="magic"], [data-st-fav-entry="extension"]').forEach(el => el.remove());
+        document.querySelectorAll('[data-st-fav-entry="magic"]').forEach(node => node.remove());
         document.getElementById(`${EXTENSION_KEY}_settings`)?.remove();
         root?.remove();
         root = null;
+        listHost = null;
+        toolbarHost = null;
+        filtersApi = null;
     };
 
     return { open, refresh: render, updateEntries, destroy };
 }
+

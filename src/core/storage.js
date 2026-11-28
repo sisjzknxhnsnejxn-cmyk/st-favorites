@@ -1,4 +1,6 @@
 import { createEmptyData, EXTENSION_KEY, SCHEMA_VERSION } from './constants.js';
+import { parseTagNames } from './cleaner.js';
+
 
 /**
  * Normalize raw data from storage, ensuring all required fields exist with correct types.
@@ -32,9 +34,30 @@ function normalizeData(value) {
         };
     }
 
+    // 自定义标签过滤项始终规范化为去重后的字符串数组
+    normalized.preferences.customTagFilters = parseTagNames(
+        normalized.preferences.customTagFilters,
+    );
+    normalized.preferences.filterCustomTags = normalized.preferences.filterCustomTags !== false;
+
+    // 旧版本遗留的 extensionMenu 开关已废弃
+    delete normalized.preferences.entryPoints.extensionMenu;
+
     normalized.schemaVersion = SCHEMA_VERSION;
     return normalized;
 }
+
+/**
+ * Resolve the effective custom tag filters from preferences.
+ * Returns an empty array when the feature is disabled.
+ * @param {object} preferences - Preferences object
+ * @returns {Array<string>} Tag names to filter out
+ */
+export function getActiveTagFilters(preferences) {
+    if (!preferences || preferences.filterCustomTags === false) return [];
+    return parseTagNames(preferences.customTagFilters);
+}
+
 
 /**
  * Validate a favorite item structure.

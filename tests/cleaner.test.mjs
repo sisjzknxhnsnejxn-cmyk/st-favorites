@@ -1,9 +1,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { 
-    stripHtmlTags, 
-    filterThinkingTags, 
-    cleanWhitespace, 
+import {
+    stripHtmlTags,
+    filterThinkingTags,
+    cleanWhitespace,
     cleanContent,
     formatItemForTxt,
     generateTxtExport

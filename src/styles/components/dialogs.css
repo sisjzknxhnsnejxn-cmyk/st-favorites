@@ -1,134 +1,149 @@
-/* 对话框样式 */
+/* 次级弹层（确认框、编辑器、标签管理） */
 
-.st-fav-confirm-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 30003;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    background: rgb(0 0 0 / 60%);
-    backdrop-filter: blur(8px);
+/*
+ * 所有弹层共用 .st-fav-modal 外壳，均通过 showModal() 打开。
+ * 它们与主面板同处 top layer，后打开者天然覆盖先打开者，无需 z-index。
+ */
+.st-fav-modal {
+    width: min(520px, calc(100% - 32px));
+    max-width: calc(100% - 32px);
+    max-height: min(80dvh, 720px);
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--st-fav-border);
+    border-radius: var(--st-fav-radius);
+    background: var(--st-fav-surface);
+    color: var(--st-fav-on-surface);
+    box-shadow: var(--st-fav-shadow);
 }
 
+.st-fav-modal[open] {
+    animation: st-fav-scale-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.st-fav-modal::backdrop {
+    background: rgb(0 0 0 / 45%);
+    animation: st-fav-fade-in 150ms ease;
+}
+
+.st-fav-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--st-fav-gap);
+    max-height: min(80dvh, 720px);
+    padding: 20px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.st-fav-modal-title {
+    margin: 0;
+    font-size: 1.05em;
+}
+
+.st-fav-modal label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.9em;
+}
+
+/* 确认 / 输入框 */
 .st-fav-confirm-dialog {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    width: min(380px, 100%);
-    padding: 20px;
-    border: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 18%));
-    border-radius: 12px;
-    background: var(--SmartThemeBlurTintColor, #1e1e1e);
-    color: var(--SmartThemeBodyColor, #eaeaea);
-    box-shadow: 0 16px 48px rgb(0 0 0 / 50%);
+    width: min(400px, calc(100% - 32px));
 }
 
-.st-fav-confirm-dialog p {
+.st-fav-confirm-text {
     margin: 0;
     font-size: 0.95em;
-    line-height: 1.5;
+    line-height: 1.6;
+    white-space: pre-line;
 }
 
-.st-fav-confirm-dialog input {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 18%));
-    border-radius: 6px;
-    background: rgb(255 255 255 / 6%);
-    color: inherit;
-    font-size: 0.95em;
+/* 编辑类弹层（单项编辑 / 批量标签） */
+.st-fav-edit-dialog {
+    width: min(500px, calc(100% - 32px));
 }
 
-.st-fav-confirm-dialog .st-fav-actions {
+.st-fav-form {
     display: flex;
-    justify-content: flex-end;
+    flex-direction: column;
+    gap: var(--st-fav-gap);
+}
+
+.st-fav-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.9em;
+}
+
+/* 标签管理 */
+.st-fav-tag-manager {
+    width: min(460px, calc(100% - 32px));
+}
+
+.st-fav-tag-list {
+    display: flex;
+    flex-direction: column;
     gap: 8px;
-    margin-top: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
-.st-fav-confirm-dialog button {
-    min-height: 36px;
-    padding: 6px 16px;
-    border: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 18%));
-    border-radius: 6px;
-    background: rgb(255 255 255 / 6%);
-    color: inherit;
-    cursor: pointer;
-}
-
-.st-fav-confirm-dialog button:hover {
-    background: rgb(255 255 255 / 12%);
-}
-
-.st-fav-confirm-dialog button.st-fav-primary {
-    background: var(--SmartThemeQuoteColor, #f5c542);
-    color: #000;
-    font-weight: 600;
-}
-
-.st-fav-confirm-dialog button.st-fav-primary:hover {
-    background: rgb(245 197 66 / 85%);
-}
-
-/* 编辑对话框 */
-.st-fav-edit-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 30002;
+.st-fav-tag-row {
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 16px;
-    background: rgb(0 0 0 / 60%);
-    backdrop-filter: blur(8px);
-}
-
-.st-fav-edit-dialog {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    width: min(500px, 100%);
-    max-height: 70vh;
-    padding: 20px;
-    border: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 18%));
-    border-radius: 12px;
-    background: var(--SmartThemeBlurTintColor, #1e1e1e);
-    color: var(--SmartThemeBodyColor, #eaeaea);
-    box-shadow: 0 16px 48px rgb(0 0 0 / 50%);
-}
-
-.st-fav-edit-dialog h3 {
-    margin: 0;
-    font-size: 1.1em;
-}
-
-.st-fav-edit-dialog label {
-    display: flex;
-    flex-direction: column;
+    justify-content: space-between;
     gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--st-fav-border);
+    border-radius: var(--st-fav-radius-sm);
+    background: var(--st-fav-layer-1);
 }
 
-.st-fav-edit-dialog input,
-.st-fav-edit-dialog textarea {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 18%));
-    border-radius: 6px;
-    background: rgb(255 255 255 / 6%);
-    color: inherit;
-    font-size: 0.95em;
-    font-family: inherit;
+.st-fav-tag-name {
+    overflow: hidden;
+    font-size: 0.9em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.st-fav-edit-dialog textarea {
-    min-height: 80px;
-    resize: vertical;
-}
-
-.st-fav-actions {
+.st-fav-tag-actions {
     display: flex;
-    justify-content: flex-end;
-    gap: 8px;
+    flex: 0 0 auto;
+    gap: 6px;
+}
+
+.st-fav-tag-actions .st-fav-button {
+    min-height: 32px;
+    padding: 4px 10px;
+    font-size: 0.82em;
+}
+
+@media (width <= 600px) {
+    .st-fav-modal {
+        width: calc(100% - 24px);
+        max-width: calc(100% - 24px);
+        max-height: 88dvh;
+    }
+
+    .st-fav-modal-body {
+        max-height: 88dvh;
+        padding: 16px;
+    }
+
+    .st-fav-actions {
+        flex-direction: column-reverse;
+    }
+
+    .st-fav-actions .st-fav-button {
+        width: 100%;
+        min-height: var(--st-fav-tap-target);
+    }
+
+    .st-fav-tag-row {
+        flex-wrap: wrap;
+    }
 }

@@ -1,1 +1,50 @@
-/* 浮动按钮样式（已在 base.css 中定义，此文件保留以备扩展） */
+/* 浮动按钮样式 */
+
+.st-fav-floating {
+    position: fixed;
+    right: 16px;
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    /*
+     * 主面板/弹层使用 showModal() 进入 top layer，不与此处竞争层级。
+     * 这里保持在 ST 自身浮层之上即可，无需超高 z-index。
+     */
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 1px solid var(--st-fav-border);
+    border-radius: 50%;
+    background: var(--st-fav-surface);
+    color: var(--st-fav-accent);
+    font-size: 22px;
+    line-height: 1;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    backdrop-filter: blur(10px);
+    transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.st-fav-floating:hover {
+    transform: scale(1.05);
+    box-shadow: 0 12px 28px rgb(0 0 0 / 45%);
+}
+
+.st-fav-floating:active {
+    transform: scale(0.96);
+    cursor: grabbing;
+}
+
+.st-fav-floating:focus-visible {
+    outline: 2px solid var(--st-fav-accent);
+    outline-offset: 3px;
+}
+
+.st-fav-floating[hidden] {
+    display: none !important;
+}
+

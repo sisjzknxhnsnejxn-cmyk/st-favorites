@@ -1,4 +1,5 @@
-import { EXTENSION_KEY } from './core/constants.js';
+import { EXTENSION_KEY, EXTENSION_VERSION } from './core/constants.js';
+
 import { getContext } from './core/context.js';
 import { createFavoritesUI, askConfirm } from './ui/index.js';
 import { addFavorite, findFavoriteBySource, loadData, removeFavorite } from './core/storage.js';
@@ -38,20 +39,25 @@ function getCurrentSource(context, messageElement) {
 
 function makeButton(favorite) {
     const button = document.createElement('div');
-    button.className = `${BUTTON_CLASS} mes_button extraMesButton`;
+    // ST 原生消息按钮为单层结构：图标类直接挂在按钮上，避免额外 <i> 造成尺寸/对齐错位
+    button.className = `${BUTTON_CLASS} mes_button fa-solid fa-star interactable`;
     button.dataset.stFavAction = 'toggle';
     button.setAttribute('role', 'button');
     button.setAttribute('tabindex', '0');
-    button.innerHTML = '<i class="fa-solid fa-star" aria-hidden="true"></i>';
     updateButton(button, favorite);
     return button;
 }
 
 function updateButton(button, favorite) {
-    button.classList.toggle('st-fav-is-active', Boolean(favorite));
-    button.setAttribute('aria-label', favorite ? '取消收藏' : '收藏消息');
-    button.title = favorite ? '已收藏' : '收藏消息';
+    const active = Boolean(favorite);
+    button.classList.toggle('st-fav-is-active', active);
+    // 已收藏时使用 ST 主题的金色变量，保持与原生高亮一致
+    button.style.color = active ? 'var(--golden)' : '';
+    button.setAttribute('aria-label', active ? '取消收藏' : '收藏消息');
+    button.setAttribute('aria-pressed', String(active));
+    button.title = active ? '已收藏' : '收藏消息';
 }
+
 
 function syncMessageButton(context, data, messageElement) {
     if (!(messageElement instanceof HTMLElement)) return;
@@ -226,7 +232,7 @@ export function bootstrapSTFavorites() {
         const runtime = initialize();
 
         const instance = {
-            version: '0.1.0',
+            version: EXTENSION_VERSION,
             open: runtime.open,
             refresh: runtime.refresh,
             reload: () => {

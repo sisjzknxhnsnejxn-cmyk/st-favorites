@@ -1,7 +1,10 @@
-/* ST Favorites - Main Styles Entry */
+/* ST Favorites - 样式入口 */
 @import './src/styles/base.css';
+@import './src/styles/components/entries.css';
 @import './src/styles/components/floating.css';
 @import './src/styles/components/panel.css';
 @import './src/styles/components/card.css';
 @import './src/styles/components/dialogs.css';
+@import './src/styles/components/settings.css';
 @import './src/styles/components/toast.css';
+

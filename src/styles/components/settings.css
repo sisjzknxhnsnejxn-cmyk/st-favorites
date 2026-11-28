@@ -1,0 +1,124 @@
+/* 扩展设置区样式 */
+
+/*
+ * 设置挂载在 ST 的 #extensions_settings 中，外层沿用原生 inline-drawer，
+ * 这里只负责抽屉内部的排版，不覆盖 ST 自身的抽屉样式。
+ */
+.st-fav-settings .inline-drawer-content {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    padding: 8px 0 4px;
+}
+
+.st-fav-settings .inline-drawer-content.open {
+    display: flex;
+}
+
+.st-fav-settings-title {
+    margin: 8px 0 0;
+    color: var(--st-fav-accent);
+    font-size: 0.85em;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.st-fav-settings-title:first-child {
+    margin-top: 0;
+}
+
+.st-fav-setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: var(--st-fav-tap-target);
+    cursor: pointer;
+}
+
+/* 输入框较宽时换成上下排布，避免挤压标签文字 */
+.st-fav-setting-row-block {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+}
+
+.st-fav-setting-label {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.st-fav-setting-hint {
+    color: var(--st-fav-muted);
+    font-size: 0.78em;
+    line-height: 1.4;
+}
+
+.st-fav-setting-row > select,
+.st-fav-setting-row > input[type='text'] {
+    flex: 0 1 auto;
+    max-width: 55%;
+}
+
+.st-fav-setting-row-block > select,
+.st-fav-setting-row-block > input[type='text'] {
+    max-width: 100%;
+}
+
+.st-fav-setting-row > input[type='checkbox'] {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.st-fav-settings-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.st-fav-settings-actions .menu_button {
+    flex: 1 1 auto;
+    min-width: 120px;
+    min-height: 36px;
+}
+
+.st-fav-import-input[hidden] {
+    display: none !important;
+}
+
+.st-fav-storage-info {
+    padding-top: 4px;
+    border-top: 1px solid var(--st-fav-border);
+    color: var(--st-fav-muted);
+    font-size: 0.8em;
+}
+
+@media (width <= 600px) {
+    .st-fav-setting-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .st-fav-setting-row > select,
+    .st-fav-setting-row > input[type='text'] {
+        max-width: 100%;
+    }
+
+    /* 开关保持与标题同行，更符合移动端习惯 */
+    .st-fav-setting-row:has(> input[type='checkbox']) {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .st-fav-settings-actions .menu_button {
+        flex: 1 1 100%;
+        min-height: var(--st-fav-tap-target);
+    }
+}

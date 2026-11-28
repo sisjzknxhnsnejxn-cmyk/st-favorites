@@ -1,0 +1,32 @@
+/* 入口点样式：魔法棒菜单项与消息星标按钮 */
+
+/*
+ * 魔法棒菜单项复用 ST 原生的 list-group-item 外观，
+ * 这里只补充隐藏逻辑与最小点击区域。
+ */
+#extensionsMenu [data-st-fav-entry] {
+    min-height: var(--st-fav-tap-target, 44px);
+    cursor: pointer;
+}
+
+[data-st-fav-entry][hidden] {
+    display: none !important;
+}
+
+/*
+ * 消息星标按钮：entry.js 将图标类直接挂在按钮上（单层结构），
+ * 因此完全继承 ST 的 .mes_button 尺寸与间距，这里不设置 width/height，
+ * 只处理「已收藏」的视觉状态，避免与主题样式打架。
+ */
+.st-fav-star-button {
+    cursor: pointer;
+}
+
+.st-fav-star-button.st-fav-is-active {
+    opacity: 1;
+}
+
+.st-fav-star-button:focus-visible {
+    outline: 2px solid var(--SmartThemeQuoteColor, #f5c542);
+    outline-offset: 2px;
+}

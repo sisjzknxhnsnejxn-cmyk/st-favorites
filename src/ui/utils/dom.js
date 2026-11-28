@@ -19,3 +19,18 @@ export function el(tag, attrs = {}, children = []) {
     node.append(...children);
     return node;
 }
+
+/**
+ * 解析用逗号分隔的标签输入（支持中英文逗号、分号、换行）
+ * @param {string} value - 原始输入
+ * @returns {Array<string>} 去重后的标签数组
+ */
+export function parseTagList(value) {
+    return [...new Set(
+        String(value ?? '')
+            .split(/[,，;；\r\n]+/)
+            .map(part => part.trim())
+            .filter(Boolean),
+    )];
+}
+

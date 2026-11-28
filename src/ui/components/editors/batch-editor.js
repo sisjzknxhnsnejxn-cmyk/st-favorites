@@ -3,7 +3,8 @@
  */
 
 import { CSS_PREFIX } from '../../../core/constants.js';
-import { el } from '../../utils/dom.js';
+import { el, parseTagList } from '../../utils/dom.js';
+import { openModal } from '../../utils/modal.js';
 
 /**
  * 打开批量标签编辑对话框
@@ -11,65 +12,68 @@ import { el } from '../../utils/dom.js';
  * @param {Function} onSave - 保存回调 (addTags, removeTags) => void
  */
 export function openBatchTagEditor(itemIds, onSave) {
-    const overlay = el('div', { class: `${CSS_PREFIX}edit-overlay` });
-    const form = el('form', { 
-        class: `${CSS_PREFIX}edit-dialog`, 
-        'aria-label': '批量编辑标签' 
+    const { body, close } = openModal({
+        className: `${CSS_PREFIX}edit-dialog`,
+        label: '批量编辑标签',
     });
-    
-    form.append(el('h3', { text: `批量编辑 ${itemIds.length} 项` }));
-    
+
+    const form = el('form', { class: `${CSS_PREFIX}form` });
+    form.append(el('h3', {
+        class: `${CSS_PREFIX}modal-title`,
+        text: `批量编辑 ${itemIds.length} 项`,
+    }));
+
     // 添加标签输入
-    const addInput = el('input', { 
-        type: 'text', 
+    const addInput = el('input', {
+        type: 'text',
+        class: `${CSS_PREFIX}input`,
         placeholder: '用逗号分隔，留空则不改变',
-        'aria-label': '添加标签'
+        'aria-label': '添加标签',
     });
-    form.append(el('label', {}, [
-        el('span', { text: '添加标签' }), 
-        addInput
+    form.append(el('label', { class: `${CSS_PREFIX}field` }, [
+        el('span', { text: '添加标签' }),
+        addInput,
     ]));
-    
+
     // 移除标签输入
-    const removeInput = el('input', { 
-        type: 'text', 
+    const removeInput = el('input', {
+        type: 'text',
+        class: `${CSS_PREFIX}input`,
         placeholder: '用逗号分隔，留空则不改变',
-        'aria-label': '移除标签'
+        'aria-label': '移除标签',
     });
-    form.append(el('label', {}, [
-        el('span', { text: '移除标签' }), 
-        removeInput
+    form.append(el('label', { class: `${CSS_PREFIX}field` }, [
+        el('span', { text: '移除标签' }),
+        removeInput,
     ]));
-    
+
     // 操作按钮
     const actions = el('div', { class: `${CSS_PREFIX}actions` });
-    const cancel = el('button', { type: 'button', text: '取消' });
-    cancel.addEventListener('click', () => overlay.remove());
-    
-    const save = el('button', { type: 'submit', text: '保存' });
+    const cancel = el('button', { type: 'button', class: `${CSS_PREFIX}button`, text: '取消' });
+    cancel.addEventListener('click', () => close());
+
+    const save = el('button', {
+        type: 'submit',
+        class: `${CSS_PREFIX}button ${CSS_PREFIX}primary`,
+        text: '保存',
+    });
     actions.append(cancel, save);
     form.append(actions);
-    
-    // 提交处理
+
     form.addEventListener('submit', event => {
         event.preventDefault();
-        const addTags = addInput.value.split(',').map(v => v.trim()).filter(Boolean);
-        const removeTags = removeInput.value.split(',').map(v => v.trim()).filter(Boolean);
-        
+        const addTags = parseTagList(addInput.value);
+        const removeTags = parseTagList(removeInput.value);
+
         if (addTags.length === 0 && removeTags.length === 0) {
-            overlay.remove();
+            close();
             return;
         }
-        
+
         onSave(addTags, removeTags);
-        overlay.remove();
+        close();
     });
-    
-    overlay.append(form);
-    overlay.addEventListener('click', event => {
-        if (event.target === overlay) overlay.remove();
-    });
-    
-    document.body.append(overlay);
+
+    body.append(form);
     addInput.focus();
 }
